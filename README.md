@@ -9,7 +9,7 @@
 **MD Studio Pro** is a lightweight, single-file Markdown editor designed for speed, focus, and privacy. It requires no installation, runs entirely in the browser, and saves your work locally.
 
 ![Project Screenshot](screenshot.png)
-*(Add a screenshot of your platform here named screenshot.png)*
+
 
 ## ✨ Key Features
 
