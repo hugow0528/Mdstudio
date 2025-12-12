@@ -4,7 +4,7 @@
 ![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
+![License](https://img.shields.io/badge/license-GPLv3-blue?style=for-the-badge)
 
 **MD Studio Pro** is a lightweight, single-file Markdown editor designed for speed, focus, and privacy. It requires no installation, runs entirely in the browser, and saves your work locally.
 
@@ -84,7 +84,7 @@ Contributions are welcome! Since this is a single-file project, please ensure an
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the **GNU General Public License v3.0**. See `LICENSE` for more information.
 
 ---
 
