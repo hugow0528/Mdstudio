@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MD Studio Pro</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Highlight.js (For Preview) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dracula.min.css">
+
+    <!-- CodeMirror (The Code Editor Engine) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --sidebar-bg: #252526;
+            --border-color: #3e3e42;
+            --accent-color: #007acc;
+            --danger-color: #ce3838;
+            --text-primary: #d4d4d4;
+            --text-secondary: #858585;
+            --editor-bg: #1e1e1e;
+            --preview-bg: #1e1e1e;
+            --modal-bg: #2d2d2d;
+            --header-height: 50px;
+            --footer-height: 30px;
+            --toolbar-height: 40px;
+            --code-font: 'Fira Code', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            height: var(--header-height);
+            background-color: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            flex-shrink: 0;
+            z-index: 20;
+        }
+
+        .brand { font-weight: 700; font-size: 1.1rem; color: #fff; display: flex; align-items: center; gap: 8px; }
+        .brand i { color: var(--accent-color); }
+
+        .toolbar-group { display: flex; gap: 8px; }
+
+        /* Universal Buttons */
+        button {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 32px;
+        }
+        button:hover { background-color: #3e3e42; color: #fff; }
+        
+        button.primary { background-color: var(--accent-color); border-color: var(--accent-color); color: white; }
+        button.primary:hover { background-color: #0062a3; }
+        
+        button.danger:hover { background-color: var(--danger-color); border-color: var(--danger-color); }
+        
+        /* State for Sync Button */
+        button.toggle-active { background-color: rgba(0, 122, 204, 0.2); color: var(--accent-color); border-color: var(--accent-color); }
+
+        /* --- Main Layout --- */
+        main { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+        /* Editor Section */
+        .editor-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            background-color: var(--editor-bg);
+            min-width: 0;
+            position: relative;
+        }
+
+        /* Editor Toolbar */
+        .editor-toolbar {
+            height: var(--toolbar-height);
+            background: #2d2d2d;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 4px;
+        }
+        .editor-toolbar button { border: none; width: 30px; padding: 0; }
+        .editor-toolbar .separator { width: 1px; height: 18px; background: var(--border-color); margin: 0 4px; }
+
+        /* CodeMirror Overrides */
+        .CodeMirror {
+            flex: 1;
+            height: auto !important;
+            font-family: var(--code-font) !important;
+            font-size: 14px;
+            line-height: 1.6;
+            background-color: var(--editor-bg) !important;
+            color: #d4d4d4 !important;
+        }
+        .CodeMirror-gutters { background-color: var(--editor-bg) !important; border-right: 1px solid #333; }
+        .CodeMirror-linenumber { color: #666; }
+        
+        /* Preview Section */
+        .preview-container {
+            flex: 1;
+            padding: 20px 40px;
+            overflow-y: auto;
+            background-color: var(--preview-bg);
+            word-wrap: break-word;
+        }
+
+        /* Markdown Styling */
+        .markdown-body { font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.8; color: #d4d4d4; max-width: 800px; margin: 0 auto; }
+        .markdown-body h1, .markdown-body h2 { border-bottom: 1px solid var(--border-color); padding-bottom: .3em; color: #fff; margin-top: 1.5em; }
+        .markdown-body a { color: var(--accent-color); text-decoration: none; }
+        .markdown-body code { font-family: var(--code-font); background-color: #2d2d2d; padding: 0.2em 0.4em; border-radius: 3px; font-size: 85%; }
+        .markdown-body pre { background-color: #282a36; padding: 16px; border-radius: 6px; overflow: auto; margin-bottom: 16px; }
+        .markdown-body pre code { background-color: transparent; padding: 0; color: inherit; }
+        .markdown-body blockquote { border-left: 4px solid var(--accent-color); padding: 0 1em; color: var(--text-secondary); margin-left: 0; background: #252526; padding: 10px 20px; border-radius: 0 4px 4px 0;}
+        .markdown-body img { max-width: 100%; border-radius: 4px; margin: 10px 0; }
+        .markdown-body ul, .markdown-body ol { padding-left: 2em; }
+        
+        /* Specific Styles for Details/Summary (Homework style) */
+        .markdown-body details {
+            background: #252526;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .markdown-body summary { cursor: pointer; font-weight: 600; color: #fff; outline: none; }
+        .markdown-body details[open] summary { margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+        
+        /* --- Table Styling --- */
+        .markdown-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+        .markdown-body table th, 
+        .markdown-body table td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+        }
+        .markdown-body table th {
+            background-color: #2d2d2d;
+            font-weight: 600;
+            color: #fff;
+        }
+        .markdown-body table tr:nth-child(2n) {
+            background-color: #252526;
+        }
+
+        /* --- Focus Mode Styles --- */
+        body.focus-mode header,
+        body.focus-mode footer,
+        body.focus-mode .preview-container,
+        body.focus-mode .view-toggle {
+            display: none !important;
+        }
+
+        body.focus-mode .editor-wrapper {
+            border-right: none;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+        }
+        
+        #exitFocusBtn {
+            position: fixed; top: 20px; right: 20px; z-index: 1000;
+            opacity: 0; transition: opacity 0.3s;
+            background: rgba(0,0,0,0.5); border: 1px solid #555;
+            display: none;
+        }
+        body.focus-mode #exitFocusBtn { display: flex; }
+        body.focus-mode:hover #exitFocusBtn { opacity: 1; }
+
+        /* --- Footer --- */
+        footer.app-footer {
+            height: var(--footer-height);
+            background-color: var(--sidebar-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            font-size: 0.75rem;
+            color: #666;
+            flex-shrink: 0;
+        }
+
+        /* --- Modals --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(3px);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            background: var(--modal-bg); width: 400px; max-width: 90%;
+            border-radius: 8px; border: 1px solid var(--border-color);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6); padding: 24px;
+            transform: translateY(10px); transition: transform 0.2s;
+        }
+        .modal-overlay.active .modal-card { transform: translateY(0); }
+        .modal-header { font-size: 1.1rem; font-weight: 600; color: #fff; margin-bottom: 8px; }
+        .modal-body { margin-bottom: 20px; color: var(--text-secondary); font-size: 0.9rem; }
+        .modal-input {
+            width: 100%; background: #1e1e1e; border: 1px solid var(--border-color);
+            padding: 10px; border-radius: 4px; color: #fff; outline: none; margin-top: 10px;
+        }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+        /* --- Toast --- */
+        .toast {
+            position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+            background-color: var(--accent-color); color: white; padding: 8px 16px;
+            border-radius: 20px; font-size: 0.9rem; opacity: 0; transition: opacity 0.3s;
+            pointer-events: none; z-index: 2000;
+        }
+        .toast.show { opacity: 1; }
+
+        /* --- Mobile --- */
+        .view-toggle { display: none; height: 50px; background: var(--sidebar-bg); border-top: 1px solid var(--border-color); }
+        .view-toggle button { flex: 1; justify-content: center; border: none; border-radius: 0; height: 100%; }
+        .view-toggle button.active { background: #37373d; color: #fff; border-bottom: 3px solid var(--accent-color); }
+
+        @media (max-width: 768px) {
+            main { flex-direction: column; }
+            .editor-wrapper, .preview-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; border-right: none; }
+            .editor-wrapper.active { display: flex; }
+            .preview-container.active { display: block; }
+            .view-toggle { display: flex; }
+            .btn-text { display: none; }
+            header { padding: 0 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <i class="fa-brands fa-markdown fa-lg"></i>
+            <span>MD Studio</span>
+        </div>
+        
+        <div class="toolbar-group">
+            <button onclick="toggleFocusMode()" title="Focus Mode">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+            <button id="syncToggleBtn" class="toggle-active" onclick="toggleSync()" title="Toggle Sync Scroll">
+                <i class="fa-solid fa-link"></i>
+            </button>
+            <div style="width: 1px; background: var(--border-color); margin: 0 4px;"></div>
+            <button onclick="triggerCopy()" title="Copy All Markdown">
+                <i class="fa-regular fa-copy"></i>
+            </button>
+            <button class="danger" onclick="openClearModal()" title="Clear">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+            <div style="width: 1px; background: var(--border-color); margin: 0 4px;"></div>
+            <button onclick="triggerImport()" title="Open">
+                <i class="fa-solid fa-folder-open"></i>
+            </button>
+            <button class="primary" onclick="openExportModal()" title="Save">
+                <i class="fa-solid fa-download"></i> <span class="btn-text">Export</span>
+            </button>
+        </div>
+        <input type="file" id="fileInput" accept=".md,.txt,.markdown" style="display:none">
+    </header>
+
+    <button id="exitFocusBtn" onclick="toggleFocusMode()">Exit Focus</button>
+
+    <main>
+        <!-- Editor Side -->
+        <div class="editor-wrapper active" id="editorPane">
+            <!-- Formatting Toolbar -->
+            <div class="editor-toolbar">
+                <button onclick="insertFormat('bold')" title="Bold (Ctrl+B)"><i class="fa-solid fa-bold"></i></button>
+                <button onclick="insertFormat('italic')" title="Italic (Ctrl+I)"><i class="fa-solid fa-italic"></i></button>
+                <button onclick="insertFormat('strikethrough')" title="Strikethrough"><i class="fa-solid fa-strikethrough"></i></button>
+                <div class="separator"></div>
+                <button onclick="insertFormat('h1')" title="Heading 1"><i class="fa-solid fa-heading"></i>1</button>
+                <button onclick="insertFormat('h2')" title="Heading 2"><i class="fa-solid fa-heading"></i>2</button>
+                <div class="separator"></div>
+                <button onclick="insertFormat('list-ul')" title="Bullet List"><i class="fa-solid fa-list-ul"></i></button>
+                <button onclick="insertFormat('list-ol')" title="Numbered List"><i class="fa-solid fa-list-ol"></i></button>
+                <button onclick="insertFormat('check')" title="Task List"><i class="fa-solid fa-square-check"></i></button>
+                <div class="separator"></div>
+                <button onclick="insertFormat('link')" title="Link"><i class="fa-solid fa-link"></i></button>
+                <button onclick="insertFormat('code')" title="Code Block"><i class="fa-solid fa-code"></i></button>
+                <button onclick="insertFormat('table')" title="Table"><i class="fa-solid fa-table"></i></button>
+                <button onclick="insertFormat('image')" title="Image"><i class="fa-regular fa-image"></i></button>
+            </div>
+            
+            <!-- CodeMirror Target -->
+            <textarea id="codeMirrorTarget"></textarea>
+        </div>
+
+        <!-- Preview Side -->
+        <div class="preview-container" id="previewPane">
+            <div id="previewOutput" class="markdown-body"></div>
+        </div>
+    </main>
+
+    <!-- Mobile Navigation -->
+    <div class="view-toggle">
+        <button id="btnEdit" class="active" onclick="switchView('edit')">
+            <i class="fa-solid fa-code"></i> &nbsp;Editor
+        </button>
+        <button id="btnPreview" onclick="switchView('preview')">
+            <i class="fa-solid fa-eye"></i> &nbsp;Preview
+        </button>
+    </div>
+
+    <!-- Footer Stats -->
+    <footer class="app-footer">
+        <span id="statusText">0 words | 0 chars</span>
+        <span>Copyright &copy; 2025 Hugo Wong. All rights reserved</span>
+    </footer>
+
+    <!-- MODALS -->
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">Export Document</div>
+            <div class="modal-body">
+                Filename:
+                <input type="text" id="filenameInput" class="modal-input" value="document.md">
+            </div>
+            <div class="modal-actions">
+                <button onclick="closeModal('exportModal')">Cancel</button>
+                <button class="primary" onclick="confirmExport()">Download</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Modal -->
+    <div id="clearModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header" style="color: var(--danger-color)">Reset Editor</div>
+            <div class="modal-body">This will delete your text and show the User Guide.</div>
+            <div class="modal-actions">
+                <button onclick="closeModal('clearModal')">Cancel</button>
+                <button class="danger" onclick="confirmClear()">Yes, Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Action Successful</div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.3/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    
+    <!-- CodeMirror Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+
+    <script>
+        // --- 1. Initialization ---
+        const editorPane = document.getElementById('editorPane');
+        const previewPane = document.getElementById('previewPane');
+        const outputArea = document.getElementById('previewOutput');
+        const fileInput = document.getElementById('fileInput');
+        const toast = document.getElementById('toast');
+        const statusText = document.getElementById('statusText');
+        const syncToggleBtn = document.getElementById('syncToggleBtn');
+        
+        // Initialize CodeMirror (Replaces standard Textarea)
+        const editor = CodeMirror.fromTextArea(document.getElementById("codeMirrorTarget"), {
+            mode: "markdown",
+            theme: "dracula",
+            lineNumbers: true,
+            lineWrapping: true,
+            tabSize: 4,
+            indentUnit: 4,
+            autofocus: true
+        });
+
+        // Config Marked
+        marked.setOptions({
+            breaks: true, gfm: true,
+            highlight: (code, lang) => {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            }
+        });
+
+        // --- 2. Live Preview & Sync Logic ---
+
+        let syncEnabled = true;
+        let activeScrollSide = null; 
+        let scrollTimeout = null;
+
+        function updatePreview() {
+            const rawMarkdown = editor.getValue();
+            const rawHtml = marked.parse(rawMarkdown);
+            outputArea.innerHTML = DOMPurify.sanitize(rawHtml);
+            updateStats(rawMarkdown);
+            saveLocally();
+        }
+
+        // Toggle Sync
+        function toggleSync() {
+            syncEnabled = !syncEnabled;
+            if (syncEnabled) {
+                syncToggleBtn.classList.add('toggle-active');
+                syncToggleBtn.innerHTML = '<i class="fa-solid fa-link"></i>';
+                showToast("Sync Scroll ON");
+            } else {
+                syncToggleBtn.classList.remove('toggle-active');
+                syncToggleBtn.innerHTML = '<i class="fa-solid fa-link-slash"></i>';
+                showToast("Sync Scroll OFF");
+            }
+        }
+
+        // 1. Editor Scrolls -> Updates Preview
+        editor.on("scroll", (cm) => {
+            if (!syncEnabled || activeScrollSide === 'preview') return;
+            activeScrollSide = 'editor';
+            clearTimeout(scrollTimeout);
+            
+            const scrollInfo = cm.getScrollInfo();
+            const percentage = scrollInfo.top / (scrollInfo.height - scrollInfo.clientHeight);
+            const previewHeight = previewPane.scrollHeight - previewPane.clientHeight;
+            
+            previewPane.scrollTop = percentage * previewHeight;
+            
+            scrollTimeout = setTimeout(() => { activeScrollSide = null; }, 30);
+        });
+
+        // 2. Preview Scrolls -> Updates Editor
+        previewPane.addEventListener('scroll', () => {
+            if (!syncEnabled || activeScrollSide === 'editor') return;
+            activeScrollSide = 'preview';
+            clearTimeout(scrollTimeout);
+
+            const percentage = previewPane.scrollTop / (previewPane.scrollHeight - previewPane.clientHeight);
+            const scrollInfo = editor.getScrollInfo();
+            const editorHeight = scrollInfo.height - scrollInfo.clientHeight;
+
+            editor.scrollTo(null, percentage * editorHeight);
+
+            scrollTimeout = setTimeout(() => { activeScrollSide = null; }, 30);
+        });
+
+        editor.on("change", () => {
+            updatePreview();
+        });
+
+        function updateStats(text) {
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+            statusText.innerText = `${words} words | ${chars} chars`;
+        }
+
+        // --- 3. Toolbar Logic ---
+
+        function insertFormat(type) {
+            const doc = editor.getDoc();
+            const cursor = doc.getCursor();
+            const selection = doc.getSelection();
+            
+            let text = "";
+            let moveCursor = 0;
+
+            switch(type) {
+                case 'bold': text = `**${selection || 'bold'}**`; moveCursor = selection ? 0 : -2; break;
+                case 'italic': text = `*${selection || 'italic'}*`; moveCursor = selection ? 0 : -1; break;
+                case 'strikethrough': text = `~~${selection || 'text'}~~`; moveCursor = selection ? 0 : -2; break;
+                case 'h1': text = `# ${selection || 'Heading'}`; break;
+                case 'h2': text = `## ${selection || 'Heading'}`; break;
+                case 'list-ul': text = `- ${selection || 'Item'}`; break;
+                case 'list-ol': text = `1. ${selection || 'Item'}`; break;
+                case 'check': text = `- [ ] ${selection || 'Task'}`; break;
+                case 'link': text = `[${selection || 'text'}](url)`; moveCursor = selection ? 0 : -1; break;
+                case 'image': text = `![${selection || 'alt'}](url)`; moveCursor = selection ? 0 : -1; break;
+                case 'table': 
+                    text = `\n| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell 1   | Cell 2   |\n`; 
+                    break;
+                case 'code': 
+                    text = selection.includes('\n') 
+                        ? `\`\`\`\n${selection}\n\`\`\`` 
+                        : `\`${selection || 'code'}\``; 
+                    break;
+            }
+
+            doc.replaceSelection(text);
+            if (moveCursor !== 0) {
+                const newPos = doc.getCursor();
+                doc.setCursor({line: newPos.line, ch: newPos.ch + moveCursor});
+            }
+            editor.focus();
+        }
+
+        // --- 4. Feature Actions ---
+
+        function triggerCopy() {
+            const text = editor.getValue();
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Copied Markdown to Clipboard");
+            });
+        }
+
+        function toggleFocusMode() {
+            document.body.classList.toggle('focus-mode');
+            editor.refresh();
+            showToast(document.body.classList.contains('focus-mode') ? "Focus Mode On" : "Focus Mode Off");
+        }
+
+        // --- 5. Mobile View Switching ---
+        function switchView(view) {
+            if (view === 'edit') {
+                editorPane.classList.add('active');
+                previewPane.classList.remove('active');
+                document.getElementById('btnEdit').classList.add('active');
+                document.getElementById('btnPreview').classList.remove('active');
+            } else {
+                editorPane.classList.remove('active');
+                previewPane.classList.add('active');
+                document.getElementById('btnEdit').classList.remove('active');
+                document.getElementById('btnPreview').classList.add('active');
+            }
+        }
+
+        // --- 6. Modal & File Logic ---
+        function triggerImport() { fileInput.click(); }
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                editor.setValue(e.target.result);
+                showToast("File Imported");
+            };
+            reader.readAsText(file);
+            fileInput.value = '';
+        });
+
+        function openExportModal() { 
+            document.getElementById('exportModal').classList.add('active');
+            document.getElementById('filenameInput').select();
+        }
+        function openClearModal() { document.getElementById('clearModal').classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function confirmExport() {
+            let fname = document.getElementById('filenameInput').value.trim() || "document.md";
+            if (!fname.toLowerCase().endsWith('.md')) fname += ".md";
+            const blob = new Blob([editor.getValue()], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = fname;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a);
+            closeModal('exportModal');
+        }
+
+        function confirmClear() {
+            editor.setValue(defaultGuide);
+            closeModal('clearModal');
+            showToast("Reset to Guide");
+        }
+
+        function showToast(msg) {
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // --- 7. Storage & Default Guide ---
+        const defaultGuide = `# Platform Feature Guide 📘
+
+Welcome to **MD Studio Pro**. Here is how to use the powerful features of this platform.
+
+## 1. Top Toolbar Features
+- **Focus Mode** (⛶): Hides all distractions (header, footer, preview) so you can focus on typing. Press ESC to exit.
+- **Sync Toggle** (🔗): 
+  - **On (Blue):** The preview scrolls automatically when you scroll the editor.
+  - **Off (Grey):** Use this if you have complex content (like expandable answers) that makes the scrolling jumpy.
+- **Copy All** (📄): instantly copies the raw Markdown code to your clipboard.
+- **Clear** (🗑️): Resets the document to this guide.
+
+## 2. Formatting
+Use the toolbar above the editor or keyboard shortcuts:
+- **Bold**: \`Ctrl+B\` -> \`**text**\`
+- **Italic**: \`Ctrl+I\` -> \`*text*\`
+- **Code Block**: \`\`\` code \`\`\`
+
+## 3. Export
+Click the **Export** button to save your work as a \`.md\` file to your computer.
+
+## 4. Advanced Elements
+We support Homework/Quiz styles using details tags:
+
+<details open>
+<summary><strong>Question: How does this work?</strong></summary>
+
+### Answer
+It renders HTML directly inside the preview.
+</details>
+
+---
+*Start typing to replace this guide...*`;
+
+        function saveLocally() { localStorage.setItem('md_pro_draft', editor.getValue()); }
+        function loadLocally() {
+            const saved = localStorage.getItem('md_pro_draft');
+            if (saved) editor.setValue(saved);
+            else editor.setValue(defaultGuide);
+        }
+
+        // Key Listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape") {
+                if(document.body.classList.contains('focus-mode')) toggleFocusMode();
+                else document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+            }
+        });
+        
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                editorPane.classList.add('active');
+                previewPane.classList.add('active');
+            }
+        });
+
+        loadLocally();
+        if (window.innerWidth > 768) { editorPane.classList.add('active'); previewPane.classList.add('active'); }
+
+    </script>
+</body>
+</html>
